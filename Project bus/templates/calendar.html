@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+
+{% block title %}Cancellation Calendar | CBMS{% endblock %}
+{% block page_heading %}Cancellation Calendar{% endblock %}
+
+
+{% block content %}
+
+<section class="welcome-row">
+
+    <div>
+        <h2>Cancellation <em>Calendar</em></h2>
+
+        <p class="muted">
+            Marked dates contain saved cancellation notices.
+        </p>
+    </div>
+
+    <a class="primary-btn" href="{{ url_for('manage') }}">
+        + New Cancellation
+    </a>
+
+</section>
+
+
+<section class="calendar-layout">
+
+    <article class="panel calendar-panel">
+
+        <div class="calendar-top">
+
+            <button id="prevMonth" class="calendar-arrow">
+                ‹
+            </button>
+
+            <h3 id="monthLabel"></h3>
+
+            <button id="nextMonth" class="calendar-arrow">
+                ›
+            </button>
+
+        </div>
+
+
+        <div class="calendar-grid weekday-row">
+
+            <span>MON</span>
+            <span>TUE</span>
+            <span>WED</span>
+            <span>THU</span>
+            <span>FRI</span>
+            <span>SAT</span>
+            <span>SUN</span>
+
+        </div>
+
+
+        <div id="calendarDays" class="calendar-grid"></div>
+
+
+        <div class="calendar-legend">
+
+            <span class="legend-dot"></span>
+            Cancellation recorded
+
+            <span class="legend-selected"></span>
+            Selected date
+
+        </div>
+
+    </article>
+
+
+    <article class="panel date-details">
+
+        <div class="panel-heading">
+
+            <div>
+                <h3>Selected <em>Date</em></h3>
+
+                <p class="muted" id="selectedDateLabel">
+                    Choose a date on the calendar
+                </p>
+            </div>
+
+        </div>
+
+
+        <div id="dateResults" class="date-results">
+
+            <div class="empty-state">
+                Select a date to view its cancellation details.
+            </div>
+
+        </div>
+
+    </article>
+
+</section>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script>
+
+let shown = new Date();
+shown.setDate(1);
+
+let selected = null;
+let marked = {};
+
+const monthLabel = document.getElementById("monthLabel");
+const daysBox = document.getElementById("calendarDays");
+
+
+function pad(number) {
+    return String(number).padStart(2, "0");
+}
+
+
+function iso(date) {
+
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+}
+
+
+async function loadMonth() {
+
+    const key =
+        `${shown.getFullYear()}-${pad(shown.getMonth() + 1)}`;
+
+    const response =
+        await fetch(`/api/calendar?month=${key}`);
+
+    marked = await response.json();
+
+    renderCalendar();
+
+}
+
+
+function renderCalendar() {
+
+    monthLabel.textContent = shown.toLocaleDateString(
+        "en-US",
+        {
+            month: "long",
+            year: "numeric"
+        }
+    );
+
+    daysBox.innerHTML = "";
+
+    const first = new Date(
+        shown.getFullYear(),
+        shown.getMonth(),
+        1
+    );
+
+    const offset = (first.getDay() + 6) % 7;
+
+    const count = new Date(
+        shown.getFullYear(),
+        shown.getMonth() + 1,
+        0
+    ).getDate();
+
+
+    for (let i = 0; i < offset; i++) {
+
+        const blank = document.createElement("div");
+
+        blank.className = "calendar-empty";
+
+        daysBox.appendChild(blank);
+
+    }
+
+
+    for (let day = 1; day <= count; day++) {
+
+        const currentDate = new Date(
+            shown.getFullYear(),
+            shown.getMonth(),
+            day
+        );
+
+        const key = iso(currentDate);
+
+        const button = document.createElement("button");
+
+        button.type = "button";
+        button.className = "calendar-day";
+        button.textContent = day;
+
+
+        if (marked[key]) {
+
+            button.classList.add("has-cancellation");
+
+            button.title =
+                `${marked[key]} cancellation record(s)`;
+
+        }
+
+
+        if (selected === key) {
+            button.classList.add("selected");
+        }
+
+
+        button.addEventListener("click", () => {
+            selectDate(key);
+        });
+
+
+        daysBox.appendChild(button);
+
+    }
+
+}
+
+
+async function selectDate(key) {
+
+    selected = key;
+
+    renderCalendar();
+
+
+    document.getElementById("selectedDateLabel").textContent =
+        new Date(key + "T00:00:00").toLocaleDateString(
+            "en-US",
+            {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric"
+            }
+        );
+
+
+    const box = document.getElementById("dateResults");
+
+    box.innerHTML =
+        '<div class="empty-state">Loading...</div>';
+
+
+    const response =
+        await fetch(`/api/cancellations/${key}`);
+
+    const rows = await response.json();
+
+
+    if (!rows.length) {
+
+        box.innerHTML =
+            '<div class="empty-state">No cancellation notices for this date.</div>';
+
+        return;
+
+    }
+
+
+    box.innerHTML = "";
+
+
+    rows.forEach(item => {
+
+        const card = document.createElement("div");
+
+        card.className = "date-result-card";
+
+
+        const title = document.createElement("b");
+
+        title.textContent =
+            `${item.route_code} · ${item.destination}`;
+
+
+        const reason = document.createElement("span");
+
+        reason.textContent = item.reason;
+
+
+        const note = document.createElement("small");
+
+        note.textContent =
+            item.note || "No additional note";
+
+
+        card.append(title, reason, note);
+
+        box.appendChild(card);
+
+    });
+
+}
+
+
+document.getElementById("prevMonth").addEventListener("click", () => {
+
+    shown.setMonth(shown.getMonth() - 1);
+
+    loadMonth();
+
+});
+
+
+document.getElementById("nextMonth").addEventListener("click", () => {
+
+    shown.setMonth(shown.getMonth() + 1);
+
+    loadMonth();
+
+});
+
+
+loadMonth();
+
+</script>
+
+{% endblock %}

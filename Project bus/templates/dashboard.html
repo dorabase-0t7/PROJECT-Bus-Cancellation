@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | CBMS{% endblock %}
+{% block page_heading %}Dashboard{% endblock %}
+
+{% block head %}
+<link rel="stylesheet"
+ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+{% endblock %}
+
+
+{% block content %}
+
+<section class="welcome-row">
+
+    <div>
+        <h2>Transport <em>Overview</em></h2>
+
+        <p class="muted">
+            Monitor routes and keep students informed.
+        </p>
+    </div>
+
+    <a class="primary-btn" href="{{ url_for('manage') }}">
+        + New Cancellation
+    </a>
+
+</section>
+
+
+<section class="stats-grid">
+
+    <article class="stat-card">
+        <div class="stat-label">TOTAL ROUTES</div>
+        <div class="stat-number">{{ total_routes }}</div>
+        <div class="stat-foot">Registered bus routes</div>
+    </article>
+
+    <article class="stat-card">
+        <div class="stat-label">CANCELLED TODAY</div>
+        <div class="stat-number">{{ cancelled_today }}</div>
+        <div class="stat-foot">Routes affected today</div>
+    </article>
+
+    <article class="stat-card">
+        <div class="stat-label">TOTAL NOTICES</div>
+        <div class="stat-number">{{ total_notices }}</div>
+        <div class="stat-foot">Cancellation records</div>
+    </article>
+
+</section>
+
+
+<section class="dashboard-grid">
+
+    <article class="panel">
+
+        <div class="panel-heading">
+            <div>
+                <h3>Bus Route <em>Map</em></h3>
+                <p class="muted">Sample route reference points</p>
+            </div>
+        </div>
+
+        <div id="routeMap"></div>
+
+        <p class="map-note">
+            These are sample locations, not live GPS positions.
+        </p>
+
+    </article>
+
+
+    <article class="panel">
+
+        <div class="panel-heading">
+            <div>
+                <h3>Recent <em>Activity</em></h3>
+                <p class="muted">Latest cancellation notices</p>
+            </div>
+        </div>
+
+        {% if recent %}
+
+            <div class="activity-list">
+
+                {% for item in recent %}
+
+                    <div class="activity-item">
+
+                        <div class="activity-symbol">!</div>
+
+                        <div class="activity-copy">
+
+                            <b>{{ item.destination }}</b>
+
+                            <small>
+                                {{ item.route_code }} · {{ item.cancel_date }}
+                            </small>
+
+                            <span>{{ item.reason }}</span>
+
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <div class="empty-state">
+                No cancellation notices yet.
+            </div>
+
+        {% endif %}
+
+    </article>
+
+</section>
+
+
+<section class="panel route-panel">
+
+    <div class="panel-heading">
+        <div>
+            <h3>Route <em>Directory</em></h3>
+            <p class="muted">Registered routes in the system</p>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>ROUTE ID</th>
+                    <th>DESTINATION</th>
+                    <th>AREA</th>
+                    <th>STATUS</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for route in routes %}
+
+                <tr>
+                    <td class="rose">{{ route.id }}</td>
+                    <td>{{ route.destination }}</td>
+                    <td>{{ route.area }}</td>
+                    <td><span class="status-normal">● Active</span></td>
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+fetch("{{ url_for('routes_api') }}")
+
+.then(response => response.json())
+
+.then(routes => {
+
+    const map = L.map("routeMap").setView([13.08, 80.18], 10);
+
+    L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            attribution: "&copy; OpenStreetMap"
+        }
+    ).addTo(map);
+
+    routes.forEach(route => {
+
+        L.circleMarker(
+            [route.lat, route.lon],
+            {
+                radius: 7,
+                color: "#e8ad9d",
+                fillColor: "#e8ad9d",
+                fillOpacity: 0.9
+            }
+        )
+        .addTo(map)
+        .bindPopup(
+            "<b>" + route.id + " - " +
+            route.destination + "</b><br>" +
+            route.area
+        );
+
+    });
+
+});
+
+</script>
+
+{% endblock %}

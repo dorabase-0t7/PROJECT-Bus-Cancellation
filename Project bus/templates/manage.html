@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Cancellation | CBMS{% endblock %}
+{% block page_heading %}Manage Cancellation{% endblock %}
+
+
+{% block content %}
+
+<section class="welcome-row">
+    <div>
+        <h2>Create a <em>Notice</em></h2>
+        <p class="muted">Select the affected route, date and reason.</p>
+    </div>
+
+    <a class="outline-btn" href="{{ url_for('calendar_page') }}">
+        View Calendar
+    </a>
+</section>
+
+
+<section class="panel form-panel">
+
+    <form method="POST" id="cancelForm" class="form-grid">
+
+        <input type="hidden"
+               name="csrf_token"
+               value="{{ csrf_token }}">
+
+        <div class="field">
+            <label>BUS ROUTE</label>
+
+            <select name="route_id" id="route" required>
+                <option value="">Select bus route</option>
+
+                {% for route in routes %}
+                    <option value="{{ route.id }}">
+                        {{ route.id }} — {{ route.destination }}
+                    </option>
+                {% endfor %}
+
+            </select>
+        </div>
+
+
+        <div class="field">
+            <label>CANCELLATION DATE</label>
+
+            <input type="date"
+                   name="cancel_date"
+                   id="cancelDate"
+                   required>
+        </div>
+
+
+        <div class="field">
+            <label>REASON</label>
+
+            <select name="reason" id="reason" required>
+
+                <option value="">Choose a reason</option>
+
+                {% for reason in reasons %}
+                    <option value="{{ reason }}">{{ reason }}</option>
+                {% endfor %}
+
+            </select>
+        </div>
+
+
+        <div class="field">
+            <label>ADDITIONAL NOTE</label>
+
+            <input
+                name="note"
+                id="note"
+                placeholder="Required only when reason is Other"
+            >
+        </div>
+
+
+        <div class="field full-field">
+
+            <label>WHATSAPP NOTICE PREVIEW</label>
+
+            <div id="preview" class="notice-preview">
+                Select a route, date and reason to preview the notice.
+            </div>
+
+        </div>
+
+
+        <div class="form-actions full-field">
+
+            <button class="primary-btn" type="submit">
+                Save Cancellation
+            </button>
+
+            <button class="outline-btn" type="button" id="shareBtn">
+                Prepare WhatsApp Message ↗
+            </button>
+
+        </div>
+
+    </form>
+
+</section>
+
+
+<section class="panel route-panel">
+
+    <div class="panel-heading">
+        <div>
+            <h3>Cancellation <em>History</em></h3>
+            <p class="muted">Latest saved records</p>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>DATE</th>
+                    <th>ROUTE</th>
+                    <th>REASON</th>
+                    <th>NOTE</th>
+                    <th>ACTION</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for item in history %}
+
+                <tr>
+                    <td>{{ item.cancel_date }}</td>
+
+                    <td>
+                        {{ item.route_id }} · {{ item.destination }}
+                    </td>
+
+                    <td>{{ item.reason }}</td>
+
+                    <td>{{ item.note or '—' }}</td>
+
+                    <td>
+                        <form method="POST"
+                              action="{{ url_for('restore', cancellation_id=item.id) }}"
+                              onsubmit="return confirm('Remove this cancellation record?')">
+
+                            <input type="hidden"
+                                   name="csrf_token"
+                                   value="{{ csrf_token }}">
+
+                            <button class="small-danger" type="submit">
+                                Remove
+                            </button>
+
+                        </form>
+                    </td>
+                </tr>
+
+                {% else %}
+
+                <tr>
+                    <td colspan="5">No records available.</td>
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script>
+
+const route = document.getElementById("route");
+const date = document.getElementById("cancelDate");
+const reason = document.getElementById("reason");
+const note = document.getElementById("note");
+const preview = document.getElementById("preview");
+
+
+function makeMessage() {
+
+    const routeName =
+        route.options[route.selectedIndex]?.text || "[Bus route]";
+
+    const selectedDate = date.value || "[Date]";
+    const selectedReason = reason.value || "[Reason]";
+
+    return `COLLEGE BUS CANCELLATION NOTICE
+
+Route: ${routeName}
+Date: ${selectedDate}
+Reason: ${selectedReason}
+${note.value ? "Note: " + note.value : ""}
+
+Please make alternative travel arrangements.`;
+
+}
+
+
+function updatePreview() {
+    preview.textContent = makeMessage();
+}
+
+
+[route, date, reason, note].forEach(element => {
+    element.addEventListener("input", updatePreview);
+    element.addEventListener("change", updatePreview);
+});
+
+
+document.getElementById("shareBtn").addEventListener("click", () => {
+
+    const message = encodeURIComponent(makeMessage());
+
+    window.open(
+        "https://wa.me/?text=" + message,
+        "_blank"
+    );
+
+});
+
+</script>
+
+{% endblock %}

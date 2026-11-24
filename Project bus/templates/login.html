@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Login | CBMS{% endblock %}
+
+{% block public_content %}
+
+<div class="login-page">
+
+    <div class="login-decoration">
+
+        <div class="login-brand">CB<span>MS</span></div>
+
+        <p>
+            COLLEGE BUS CANCELLATION<br>
+            MANAGEMENT SYSTEM
+        </p>
+
+        <div class="login-line"></div>
+
+        <small>SMARTER TRANSPORT COMMUNICATION</small>
+
+    </div>
+
+
+    <div class="login-panel">
+
+        <div class="login-card">
+
+            <div class="eyebrow">WELCOME BACK</div>
+
+            <h1>Admin <em>Login</em></h1>
+
+            <p class="muted">
+                Sign in to manage bus cancellation notices.
+            </p>
+
+            <form method="POST" class="form-stack">
+
+                <label>USERNAME</label>
+
+                <input
+                    type="text"
+                    name="username"
+                    placeholder="Enter username"
+                    autocomplete="username"
+                    required
+                >
+
+                <label>PASSWORD</label>
+
+                <input
+                    type="password"
+                    name="password"
+                    placeholder="Enter password"
+                    autocomplete="current-password"
+                    required
+                >
+
+                <button class="primary-btn full-btn" type="submit">
+                    Sign In <span>→</span>
+                </button>
+
+            </form>
+
+            <div class="login-hint">
+                <b>Demo Login</b><br>
+                Username: admin<br>
+                Password: admin123
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
